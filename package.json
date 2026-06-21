@@ -1,6 +1,6 @@
 {
   "name": "webpack-plugin-oss-upload",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "一个可以将打包好的资源文件上传到阿里云OSS并且修改代码中资源文件CDN地址的Webpack 5+插件",
   "author": "tiyee <tiyee@live.com>",
   "license": "MIT",
