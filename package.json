@@ -1,0 +1,78 @@
+{
+  "name": "webpack-plugin-oss-upload",
+  "version": "0.0.1",
+  "description": "一个可以将打包好的资源文件上传到阿里云OSS并且修改代码中资源文件CDN地址的Webpack 5+插件",
+  "author": "tiyee <tiyee@live.com>",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "webpack",
+    "webpack-plugin",
+    "aliyun-oss",
+    "aliyun",
+    "oss",
+    "plugin",
+    "assets",
+    "cdn",
+    "upload"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iDigimon/webpack-plugin-oss-upload.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@10.18.2",
+  "devDependencies": {
+    "@types/ali-oss": "^6.16.1",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "webpack": "^5.0.0"
+  },
+  "dependencies": {
+    "ali-oss": "^6.21.0",
+    "glob": "^11.0.0",
+    "picocolors": "^1.1.1",
+    "p-limit": "^6.1.0"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "webpack": {
+      "optional": false
+    }
+  }
+}

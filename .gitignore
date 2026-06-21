@@ -17,6 +17,9 @@ pnpm-debug.log*
 .DS_Store
 .idea
 .gitignore
+CLAUDE.md
+.claude
+.trae
 .vscode/*
 !.vscode/extensions.json
 *.suo
