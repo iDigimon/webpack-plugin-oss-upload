@@ -24,6 +24,18 @@ export type OSSOptions = {
 /** 单个文件的上传路径生成函数：入参为文件本地绝对路径，返回 OSS 上的相对路径 */
 export type SetOssPath = (filePath: string) => string
 
+/**
+ * CDN 重写时自定义资源引用 querystring 的函数。
+ *
+ * @param path 命中的资源路径，如 `/assets/logo.png`
+ * @param query 原始 querystring，**包含 `?`**，如 `?v=1`；无 query 时为空字符串 `''`
+ * @returns 重写后的 querystring。返回值会被原样拼到 CDN 地址后面：
+ *   - 以 `?` 开头时直接使用（如 `?v=2`）；
+ *   - 不以 `?` 开头时会自动补齐 `?`（如 `v=2` → `?v=2`）；
+ *   - 返回 `''` 表示去掉查询串。
+ */
+export type RewriteQueryString = (path: string, query: string) => string
+
 /** 版本号上报回调 */
 export type SetVersion = (data: { version: string }) => unknown | Promise<unknown>
 
@@ -79,6 +91,15 @@ export type OptionalOptions = {
    * 自定义每个文件上传到 OSS 的路径。不传或返回 falsy 值时按默认规则计算。
    */
   setOssPath?: SetOssPath
+  /**
+   * 自定义 CDN 重写时的资源引用 querystring。
+   * 入参 `(path, query)`：`path` 为命中的资源路径（如 `/assets/logo.png`），
+   * `query` 为原始 querystring（**包含 `?`**，如 `?v=1`，无 query 时为 `''`）。
+   * 返回值作为最终的 querystring 拼到 CDN 地址后：以 `?` 开头直接使用，不以 `?`
+   * 开头时自动补齐（如 `v=2` → `?v=2`），返回 `''` 表示去掉 query。
+   * 不传时原样保留原始 querystring。
+   */
+  rewriteQueryString?: RewriteQueryString
   /**
    * 是否覆盖 OSS 上的同名文件。默认 `true`。
    */

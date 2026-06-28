@@ -334,6 +334,84 @@ describe('OSSUploadWebpackPlugin', () => {
     expect(compilation.assets['logo.png']!.source().toString('utf-8')).toBe('png')
   })
 
+  it('未配置 rewriteQueryString 时原样保留原 querystring', async () => {
+    const compilation = createFakeCompilation()
+    compilation.assets['index.js'] = { source: () => Buffer.from('var u="/assets/logo.png?v=1";') }
+
+    const plugin = new OSSUploadWebpackPlugin({
+      ...baseOpts,
+      cdnHost: 'https://cdn.example.com',
+      dist: '/static',
+    })
+    await runPlugin(plugin, 'dist', ['processAssets'], compilation)
+
+    const out = compilation.assets['index.js']!.source().toString('utf-8')
+    expect(out).toBe('var u="https://cdn.example.com/static/assets/logo.png?v=1";')
+  })
+
+  it('rewriteQueryString 可改写 querystring（含 `?`），入参 query 含 `?`', async () => {
+    const seen: Array<{ path: string; query: string }> = []
+    const compilation = createFakeCompilation()
+    compilation.assets['index.js'] = {
+      source: () => Buffer.from('var a="/assets/logo.png?v=1"; var b="/assets/banner.jpg";'),
+    }
+
+    const plugin = new OSSUploadWebpackPlugin({
+      ...baseOpts,
+      cdnHost: 'https://cdn.example.com',
+      dist: '/static',
+      rewriteQueryString: (p, q) => {
+        seen.push({ path: p, query: q })
+        return '?__cdn__=1'
+      },
+    })
+    await runPlugin(plugin, 'dist', ['processAssets'], compilation)
+
+    const out = compilation.assets['index.js']!.source().toString('utf-8')
+    expect(out).toBe(
+      'var a="https://cdn.example.com/static/assets/logo.png?__cdn__=1"; var b="https://cdn.example.com/static/assets/banner.jpg?__cdn__=1";',
+    )
+    // 入参 path 不含 query，query 含 `?`；无 query 时为空串
+    expect(seen).toEqual([
+      { path: '/assets/logo.png', query: '?v=1' },
+      { path: '/assets/banner.jpg', query: '' },
+    ])
+  })
+
+  it('rewriteQueryString 返回空串时可去掉 querystring', async () => {
+    const compilation = createFakeCompilation()
+    compilation.assets['index.js'] = {
+      source: () => Buffer.from('var a="/assets/logo.png?v=1&x=2";'),
+    }
+
+    const plugin = new OSSUploadWebpackPlugin({
+      ...baseOpts,
+      cdnHost: 'https://cdn.example.com',
+      dist: '/static',
+      rewriteQueryString: () => '',
+    })
+    await runPlugin(plugin, 'dist', ['processAssets'], compilation)
+
+    const out = compilation.assets['index.js']!.source().toString('utf-8')
+    expect(out).toBe('var a="https://cdn.example.com/static/assets/logo.png";')
+  })
+
+  it('rewriteQueryString 返回值不带 `?` 时会自动补上 `?`', async () => {
+    const compilation = createFakeCompilation()
+    compilation.assets['index.js'] = { source: () => Buffer.from('var u="/assets/logo.png";') }
+
+    const plugin = new OSSUploadWebpackPlugin({
+      ...baseOpts,
+      cdnHost: 'https://cdn.example.com',
+      dist: '/static',
+      rewriteQueryString: () => 'cache=bust',
+    })
+    await runPlugin(plugin, 'dist', ['processAssets'], compilation)
+
+    const out = compilation.assets['index.js']!.source().toString('utf-8')
+    expect(out).toBe('var u="https://cdn.example.com/static/assets/logo.png?cache=bust";')
+  })
+
   it('beforeRun：未指定 endpoint/secure 且探测到内网时，用内网 endpoint + HTTP 重建 OSS', async () => {
     setIsInternal(true)
     const plugin = new OSSUploadWebpackPlugin({

@@ -17,15 +17,62 @@ pnpm-debug.log*
 .DS_Store
 .idea
 .gitignore
-CLAUDE.md
-.claude
-.trae
 .vscode/*
 !.vscode/extensions.json
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+
+# ===============================
+# AI Coding Tools
+# ===============================
+
+# Generic
+AGENT.md
+AGENTS.md
+
+# Anthropic Claude Code
+CLAUDE.md
+CLAUDE.local.md
+/.claude/
+
+# Google Gemini CLI
+GEMINI.md
+/.gemini/
+
+# Qwen (通义千问)
+QWEN.md
+/.qwen/
+
+# Crush
+CRUSH.md
+/.crush/
+
+# Trae
+/.trae/
+
+# Aider
+.aider*
+
+# Cursor
+/.cursor/
+
+# Windsurf / Codeium / Devin
+/.windsurf/
+/.codeium/
+.codeiumignore
+
+# Tabnine
+.tabnine_root
+.tabnineignore
+.tabnine
+
+# Sourcegraph
+.sourcegraph/
+
+# JetBrains AI Assistant
+.aiignore
 
 # env (请勿提交真实凭据)
 .env
