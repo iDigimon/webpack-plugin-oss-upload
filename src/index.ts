@@ -91,6 +91,7 @@ class OSSUploadWebpackPlugin {
   private readonly deleteOrigin: boolean
   private readonly deleteEmptyDir: boolean
   private readonly setOssPath: PluginOptions['setOssPath']
+  private readonly rewriteQueryString: PluginOptions['rewriteQueryString']
   private readonly timeout: number
   private readonly verbose: boolean
   private readonly test: boolean
@@ -127,6 +128,7 @@ class OSSUploadWebpackPlugin {
     this.deleteOrigin = options.deleteOrigin ?? defaultOption.deleteOrigin
     this.deleteEmptyDir = options.deleteEmptyDir ?? defaultOption.deleteEmptyDir
     this.setOssPath = options.setOssPath
+    this.rewriteQueryString = options.rewriteQueryString
     this.timeout = options.timeout ?? defaultOption.timeout
     this.verbose = options.verbose ?? defaultOption.verbose
     this.test = options.test ?? defaultOption.test
@@ -288,10 +290,16 @@ class OSSUploadWebpackPlugin {
     const suffixPattern = this.fileSuffix.map(escapeRegExp).join('|')
     // $1 = 前导分隔符（引号/等号/括号/空白/行首），原样保留
     // $2 = /assets/xxx.<ext>，被替换为 ${cdnBaseUrl}$2
+    // $3 = 可选的 querystring（含 `?`），如 `?v=1`
     const regExp = new RegExp(
-      `(^|[\\s'"=()])((?:\\/${dirPattern})\\/[\\w.\\-/]+\\.(${suffixPattern}))(?![\\w])`,
+      `(^|[\\s'"=()])((?:\\/${dirPattern})\\/[\\w.\\-/]+\\.(${suffixPattern}))((?:\\?[^\\s'"<>)]*)?)(?![\\w])`,
       'ig',
     )
+
+    // 统一签名：未配置 rewriteQueryString 时按原样保留 querystring；否则交给用户改写。
+    // 入参与返回值的 query 都带前导 `?`；返回 `''` 表示去掉查询串；
+    // 返回值若不以 `?` 开头会自动补齐 `?`。
+    const rewriteQuery = this.rewriteQueryString
 
     // 仅处理文本类资源
     const isTextAsset = (name: string) => /\.(js|css|html?)$/i.test(name)
@@ -301,7 +309,18 @@ class OSSUploadWebpackPlugin {
       const asset = compilation.getAsset(name)
       if (!asset) continue
       const content = asset.source.source().toString('utf-8')
-      const next = content.replace(regExp, `$1${cdnBaseUrl}$2`)
+      const next = content.replace(
+        regExp,
+        (_m, lead: string, assetPath: string, _ext: string, query: string) => {
+          const nextQuery = rewriteQuery ? rewriteQuery(assetPath, query) : query
+          const querySuffix = nextQuery
+            ? nextQuery.startsWith('?')
+              ? nextQuery
+              : `?${nextQuery}`
+            : ''
+          return `${lead}${cdnBaseUrl}${assetPath}${querySuffix}`
+        },
+      )
       if (next !== content) {
         compilation.updateAsset(name, new RawSource(next))
       }

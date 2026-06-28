@@ -6,6 +6,7 @@
 
 - 🚀 打包完成后自动上传资源文件到阿里云 OSS
 - 🔁 自动重写构建产物中的资源引用为 CDN 地址（基于 `compilation.assets`，在内存中改写）
+- ✏️ 支持通过 `rewriteQueryString` 自定义（新增 / 改写 / 去除）资源引用的 querystring
 - ⚡ 并发上传（可配置），支持大文件批量场景
 - 🧪 支持 `test` 模式预演，不真正上传
 - 🗑️ 可选删除本地原文件与空目录
@@ -52,6 +53,7 @@ pnpm add webpack-plugin-oss-upload -D
 | `assetsDirectory` | 资源目录名，用于 CDN 路径替换 | `assets` |
 | `outputDirectory` | 打包输出目录 | `dist` |
 | `setOssPath` | 自定义 OSS 路径生成函数 | 以 `outputDirectory` 为基准的相对路径 |
+| `rewriteQueryString` | 改写资源引用的 querystring，签名 `(path, query) => string`。`path` 为 CDN 替换前的原始资源路径；`query` 入参与返回值**都包含 `?`**（如 `?v=1`），无查询串时为 `''`；返回值不以 `?` 开头时会自动补齐 `?`，返回 `''` 表示去掉查询串 | — |
 | `concurrency` | 并发上传数 | `5` |
 | `secure` | 是否使用 HTTPS（`true`）/ HTTP（`false`）。默认随 OSS 客户端自动判断 | — |
 
@@ -64,6 +66,39 @@ pnpm add webpack-plugin-oss-upload -D
 
 > 该机制对 CI、无外网等环境安全：任何探测异常都静默回退，不抛错。
 > 若需完全跳过自动探测，显式设置 `endpoint` 或 `secure` 即可。
+
+### 改写资源引用的 querystring
+
+`rewriteQueryString` 允许你在 CDN 路径替换时，自定义资源引用后面的 querystring（例如统一打版本号、缓存破坏标识等）。
+
+```ts
+rewriteQueryString?: (path: string, query: string) => string
+```
+
+- `path`：CDN 替换**前**的原始资源路径，如 `/assets/logo.png`，仅用于识别资源；
+- `query`：原 querystring，**包含前导 `?`**（如 `?v=1`）；若原引用没有查询串则为 `''`；
+- **返回值**：作为新的 querystring 拼接到 CDN 地址之后 —— 以 `?` 开头时直接使用（如 `?v=2`），不以 `?` 开头时会自动补齐 `?`（如 `v=2` → `?v=2`）；返回 `''` 则**去掉**查询串。
+
+> 不配置 `rewriteQueryString` 时，保持原 querystring 不变。
+
+示例：
+
+```javascript
+new OSSUploadWebpackPlugin({
+  cdnHost: 'https://cdn.xxx.com',
+  // ...其它配置
+  // 统一把所有资源引用的查询串替换为构建版本号（带不带 `?` 都行）
+  rewriteQueryString: (_path, _query) => `?v=${process.env.BUILD_VERSION}`,
+})
+```
+
+转换效果：
+
+| 原引用 | `rewriteQueryString` 返回值 | 替换后 |
+| --- | --- | --- |
+| `/assets/logo.png?v=1` | `?v=2` | `https://cdn.xxx.com/static/assets/logo.png?v=2` |
+| `/assets/logo.png` | `cache=bust` | `https://cdn.xxx.com/static/assets/logo.png?cache=bust` |
+| `/assets/logo.png?v=1` | `''` | `https://cdn.xxx.com/static/assets/logo.png` |
 
 > ⚠️ **安全提醒**：`accessKeyId` / `accessKeySecret` 非常敏感，请通过环境变量读取，切勿硬编码到提交到仓库的配置文件中。
 
@@ -105,6 +140,9 @@ export default {
         bucket: process.env.OSS_BUCKET,
         overwrite: true,
         quitWpOnError: true,
+        // 改写资源引用的 querystring：入参与返回值均以 `?` 开头
+        // 用于统一打版本号 / 缓存破坏标识，返回 `''` 可去掉查询串
+        rewriteQueryString: (_path, _query) => `?v=${process.env.BUILD_VERSION ?? '1'}`,
       }),
   ].filter(Boolean),
 }
